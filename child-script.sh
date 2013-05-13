@@ -6,7 +6,8 @@ apt-get -y install python-software-properties software-properties-common python-
 add-apt-repository -y ppa:chris-lea/node.js
 apt-get update
 apt-get -y install python g++ make nodejs git
+cd /usr/local/share
 git clone https://github.com/konsumer/loadtester.git
 cd loadtester
-npm -g install
-loadtester
+npm install
+node cli.js
