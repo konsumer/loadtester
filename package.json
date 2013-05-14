@@ -2,16 +2,21 @@
   "name": "loadtester",
   "version": "0.0.1",
   "description": "A clustering load-testing framework",
-  "license" : "MIT",
+  "license": "MIT",
   "author": "David Konsumer <konsumer@jetboystudio.com> (http://jetboystudio.com)",
   "dependencies": {
     "nss": "git://github.com/Samuel29/NodeStressSuite.git#master",
     "optimist": "",
-    "ec2": ""
+    "ec2": "",
+    "async": ""
   },
   "repository": {
     "type": "git",
     "url": "https://github.com:konsumer/loadtester"
   },
-  "bin":{ "bin" : { "loadtest" : "./cli.js" } }
+  "bin": {
+    "bin": {
+      "loadtest": "./cli.js"
+    }
+  }
 }

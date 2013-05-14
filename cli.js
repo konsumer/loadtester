@@ -2,9 +2,15 @@
 var optimist = require('optimist'),
 	fs = require('fs'),
 	path = require('path'),
-	net = require('net');
+	net = require('net'),
+	http = require('http'),
+	url = require('url'),
+	async = require('async');
 
-// attempt to get your external network IP address
+/**
+ * Get Network IP address
+ * @param  {Function} Called when done, params: (err, ip)
+ */
 function getNetworkIP(callback) {
   var socket = net.createConnection(80, 'www.google.com');
   socket.on('connect', function() {
@@ -12,10 +18,11 @@ function getNetworkIP(callback) {
     socket.end();
   });
   socket.on('error', function(e) {
-    callback(e, 'error');
+    callback(e);
   });
 }
 
+// Get IP & parse options
 getNetworkIP(function(err, ip){
 	var key, secret, endpoint;
 
@@ -102,8 +109,68 @@ getNetworkIP(function(err, ip){
 		}
 	}
 
-	var test;
+	// get NSS ready for running tests
+	var nl = require('nss');
+	process.setMaxListeners(0);
+	nl.usePort(options.port);
+	if (!options.log)
+		nl.disableLogs();
 
+	/**
+	 * Check a cluster of machines
+	 * @param  {Array}    checkHosts   Array of hosts to check
+	 * @param  {Function} callback     Called when done, params: (runningHosts)
+	 * @param  {Boolean}  runUntilTrue Keep polling until all hosts up?
+	 */
+	function checkCluster(checkHosts, callback, runUntilTrue){
+		async.filter(checkHosts, function(host, inner_callback){
+			console.log('checking', host);
+			var req = http.request(url.parse('http://' + host), function(res){
+				res.on('data', function (chunk) {});
+				res.on('end', function () { inner_callback(true); });
+			});
+			req.on('error', function(error){ inner_callback(false); });
+			req.end();
+		}, function(runningHosts){
+		    if (runUntilTrue){
+		    	if (checkHosts.length == runningHosts.length){
+		    		callback(runningHosts);
+		    	}else{
+		    		checkCluster(checkHosts, callback, runUntilTrue);
+		    	}
+		    }else{
+		    	callback(runningHosts);
+		    }
+		    
+		});
+	}
+
+	/**
+	 * Spin up a test-cluster
+	 * @param  {Object}   test     Test object
+	 * @param  {Object}   options  Options object
+	 * @param  {Function} callback Called when done, params: (cluster)
+	 */
+	function startCluster(test, options, callback){
+		checkCluster(options.child, function(runningHosts){
+			var cluster = new nl.LoadTestCluster(options.host + ':' + options.port, options.child);
+
+			// setup exit strategy
+			console.log("Test display running on http://" + options.host + ":" + options.port + "/ Ctrl-C to quit.");
+			process.on('SIGINT', function () {
+				console.log('\nGot SIGINT. Stopping test\n');
+				cluster.end();
+			});
+
+			// run cluster
+			cluster.run(test);
+
+			callback(cluster);
+		}, true);
+	}
+
+	// load test
+	var test;
 	if (options['_'].length == 1){
 		try{
 			test = require(path.resolve(options['_'][0]));
@@ -114,43 +181,17 @@ getNetworkIP(function(err, ip){
 		}
 	}
 
-	// get NSS ready for running tests
-	var nl = require('nss');
-	process.setMaxListeners(0);
-	nl.usePort(options.port);
-	if (!options.log)
-		nl.disableLogs()
-
-	// handles actually starting a cluster, using options.child array as children
-	function startCluster(callback){
-		callback = callback || function(){ process.exit(0); };
-		var cluster = new nl.LoadTestCluster(options.host + ':' + options.port, options.child);
-		
-		console.log("Test display running on http://" + options.host + ":" + options.port + "/ Ctrl-C to quit.");
-		process.on('SIGINT', function () {
-			console.log('\nGot SIGINT. Stopping test\n');
-			cluster.end();
-		});
-		
-		cluster.run(test);
-		cluster.on('end', function() {
-			console.log('\nAll tests done. exiting.\n');
-			callback();
-		});
-	}
-
-	// am I a slave, or a master?
+	// am I a child or parent?
 	if (test){
 		// should I spin up AWS instances?
 		if (options.instances > 0){
 			var reservationId, instances;
 
+			// handle timeout
 			if (options.timeout !=0){
 				// check to see that all the statuses are "running" after timeout
 				setTimeout(function(){
-					var completedInstances = instances.filter(function(instance){
-						return instance.instanceState.name == "running";
-					});
+					var completedInstances = instances.filter(function(instance){ return instance.instanceState.name == "running"; });
 					if (completedInstances.length < instances.length ){
 						console.error("AWS took more than " + options.timeout + " seconds to spin up the test machines. Aborting.");
 						process.exit(1);
@@ -158,11 +199,6 @@ getNetworkIP(function(err, ip){
 				}, options.timeout * 1000);
 			}
 
-			var script = new Buffer(fs.readFileSync(path.resolve("./child-script.sh"))).toString('base64');
-			var ec2 = require("ec2")({key:options.key, secret:options.secret, endpoint:options.endpoint});
-			ec2("RunInstances", { UserData: script, ImageId: options.machine, KeyName: options.authkey, MinCount: options.instances, MaxCount: options.instances, InstanceType:"t1.micro", SecurityGroup:options.group}, running);
-			
-			
 			function describe() { ec2("DescribeInstances", {}, starting); }
 
 			function running(error, response) {
@@ -188,24 +224,30 @@ getNetworkIP(function(err, ip){
 					instances.forEach(function(instance){
 						var h = instance.dnsName + ':' + options.port;
 						options.child.push(h);
-						console.log("loadtester running on " + h);
+						console.log("AWS child running at " + instance.dnsName);
 					});
-					startCluster(function(){
-						console.log("Stopping AWS cluster.");
-						var cluster = {};
-						// delete all AWS machines
-						instances.forEach(function(instance,i){
-							cluster['InstanceId.' + (i+1)] = instance.instanceId;
+
+					startCluster(test, options, function(cluster){
+						cluster.on('end', function() {
+							var toKill = {};
+							instances.forEach(function(instance, i){
+								toKill['InstanceId.' + (i+1)] = instance.instanceId;
+							});
+							console.log('killing', toKill);
+							ec2("TerminateInstances", toKill, function(response){
+								console.log('\nAll tests done. Killed AWS children, exiting.\n');
+								process.exit(0);
+							});
 						});
-						ec2("TerminateInstances", cluster, function(error, response){
-							if (error) throw error;
-							process.exit(0);
-						});
-					});
+					});					
 				}else{
 					setTimeout(describe, 2500);
 				}
 			}
+
+			var script = new Buffer(fs.readFileSync(path.resolve("./child-script.sh"))).toString('base64');
+			var ec2 = require("ec2")({key:options.key, secret:options.secret, endpoint:options.endpoint});
+			ec2("RunInstances", { UserData: script, ImageId: options.machine, KeyName: options.authkey, MinCount: options.instances, MaxCount: options.instances, InstanceType:"t1.micro", SecurityGroup:options.group}, running);
 		}else{
 			// should I spin up a local tester for standalone
 			if (options.child.length == 0){
@@ -213,7 +255,10 @@ getNetworkIP(function(err, ip){
 			}
 			// should I connect to a cluster to run my tests?
 			if (options.child.length > 0){
-				startCluster();
+				startCluster(test, options, function(cluster){
+					console.log('\nAll tests done. exiting.\n');
+					process.exit(0);
+				});
 			}
 		}
 	}else{

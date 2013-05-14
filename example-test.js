@@ -11,17 +11,15 @@ module.exports = {
     port: 80,
     timeLimit: 180,
     loadProfile: [[0,0], [180,400] ],
-    log:false,
-    slaveInterval: 2000,
     stats: [
-		'rps',
-		'result-codes',
-		{name: 'latency', percentiles: [0.95]},
-		'concurrency',
-		'request-bytes',
-		'response-bytes'
-	],
+        'rps',
+        'result-codes',
+        {name: 'latency', percentiles: [0.95]},
+        'concurrency',
+        'request-bytes',
+        'response-bytes'
+    ],
     requestGenerator: function(client) {
-		return client.request({method:'GET', path: '/'});
+        return client.request({method:'GET', path: '/'});
     }
 };
