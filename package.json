@@ -15,9 +15,7 @@
     "url": "https://github.com:konsumer/loadtester"
   },
   "bin": {
-    "bin": {
-      "loadtest": "./cli.js"
-    }
+      "loadtest": "cli.js"
   },
   "main": "lib.js"
 }

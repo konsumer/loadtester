@@ -86,7 +86,7 @@ log        create a local HTML report log                                       
 instances  The number of AWS instances to spin-up and send tests to              [eg: 0]
 authkey    Your AWS instance keypair to use                                      [eg: "deploy"]
 group      The AWS security group that has port open                             [eg: "loadtest"]
-machine    Your AWS AMI that will run this script                                [eg: "ami-422ea672"]
+machine    Your AWS AMI that will run this script                                [eg: "ami-bf1d8a8f"]
 key        Your AWS auth key                                                     [your AWS key]
 secret     Your AWS secret                                                       [your AWS secret]
 endpoint   Your AWS endpoint zone                                                [eg: "us-west-2"]

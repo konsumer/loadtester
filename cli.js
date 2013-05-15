@@ -67,7 +67,7 @@ getNetworkIP(function(err, ip){
 
         .alias('m', 'machine')
             .describe('m', 'Your AWS AMI that will run this script for --instances option')
-            .default('m', 'ami-422ea672')
+            .default('m', 'ami-bf1d8a8f')
 
         .alias('k', 'key')
             .describe('k', 'Your AWS auth key for --instances option')
