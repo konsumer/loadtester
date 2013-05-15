@@ -18,5 +18,6 @@
     "bin": {
       "loadtest": "./cli.js"
     }
-  }
+  },
+  "main": "lib.js"
 }
