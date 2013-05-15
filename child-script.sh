@@ -9,8 +9,8 @@ apt-get update
 apt-get -y install python g++ make nodejs git
 
 # download loadtester and run as child
-cd /usr/local/share
+cd ~
 git clone https://github.com/konsumer/loadtester.git
 cd loadtester
-npm install
-node cli.js
+npm install -g
+loadtest
