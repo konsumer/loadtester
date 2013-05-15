@@ -83,7 +83,6 @@ module.exports.checkCluster = checkCluster;
 
 /**
  * Spin up a test-cluster
- * @param  {Object}   options  Options object
  * @param  {Function} callback Called when done, params: (cluster)
  */
 function startCluster(callback){
@@ -106,7 +105,6 @@ module.exports.startCluster = startCluster;
 
 /**
  * Spinup AWS instances, based on options
- * @param  {[type]} options Options object
  */
 function aws_spinup(){
     var reservationId, instances;

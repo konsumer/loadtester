@@ -94,3 +94,30 @@ timeout    Timeout (in seconds) for spinning up AWS machines                    
 script     The filename of the client startup script                             [eg: "./child-script.sh"]
 ```
 
+It has these functions that all use the initial options you gave it:
+
+```
+/**
+ * Check a cluster of machines
+ * @param  {Array}    checkHosts   Array of hosts to check
+ * @param  {Function} callback     Called when done, params: (runningHosts)
+ * @param  {Boolean}  runUntilTrue Keep polling until all hosts up?
+ */
+function checkCluster(checkHosts, callback, runUntilTrue)
+
+/**
+ * Spin up a test-cluster
+ * @param  {Function} callback Called when done, params: (cluster)
+ */
+function startCluster(callback)
+
+/**
+ * Spinup AWS instances, based on options
+ */
+function aws_spinup()
+
+```
+
+
+
+
