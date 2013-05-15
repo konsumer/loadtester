@@ -61,3 +61,36 @@ If you have a mother setup somewhere else, you can just run loadtester without a
 If you have children running somewhere, already (using AWS Mother or Manual Child mode, above) connect to them and send a test liek this:
 
 `loadtest mytest.js --child=host1:3000 --child=host2:6000 --child=host3:9000`
+
+
+## Library Usage
+
+You can also use it as a library, by running this in your project dir: `npm --save install "git://github.com/konsumer/loadtester.git"`
+
+And now, you can do this:
+
+```javascript
+var loadtester = require('loadtester')(options);
+```
+
+`options` mirrors the CLI options:
+
+```
+child      host & port of children to use to test                                [array of hosts&ports]
+port       port to run on.                                                       [eg: 3000]
+host       an externally accessable hostname for this instance.                  [your IP]
+update     Update frequency (in seconds) for polling children                    [eg: 2]
+comment    Comment for log/HTML output                                         
+log        create a local HTML report log                                        [boolean]
+
+instances  The number of AWS instances to spin-up and send tests to              [eg: 0]
+authkey    Your AWS instance keypair to use                                      [eg: "deploy"]
+group      The AWS security group that has port open                             [eg: "loadtest"]
+machine    Your AWS AMI that will run this script                                [eg: "ami-422ea672"]
+key        Your AWS auth key                                                     [your AWS key]
+secret     Your AWS secret                                                       [your AWS secret]
+endpoint   Your AWS endpoint zone                                                [eg: "us-west-2"]
+timeout    Timeout (in seconds) for spinning up AWS machines                     [eg: 120]
+script     The filename of the client startup script                             [eg: "./child-script.sh"]
+```
+
