@@ -1,6 +1,6 @@
 # Loadtester
 
-This is a clustered javascript load-testing framework.  You can read more about it [here](http://blog.jetboystudio.com/2013/05/10/ec2-automated-testing.html)
+This is a clustered javascript load-testing framework.  You can read more about it [here](http://blog.jetboystudio.com/articles/ec2-automated-testing/)
 
 ## Installation
 
